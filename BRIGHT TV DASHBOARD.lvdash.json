@@ -1,0 +1,995 @@
+{
+  "datasets": [
+    {
+      "name": "27b73344",
+      "displayName": "BRIGHT TIV BIG QUERY CODE",
+      "queryLines": [
+        "With user_profiles AS\n",
+        "(SELECT UserID,\n",
+        "           CASE ---Creating gender classification\n",
+        "                 WHEN Gender = 'None' THEN 'unknown' \n",
+        "                 WHEN Gender = ' ' THEN 'unknown' \n",
+        "                 WHEN Gender IS NULL THEN 'unknown' \n",
+        "                 ELSE Gender \n",
+        "              END AS Sex,\n",
+        "               \n",
+        "             CASE---classifying race\n",
+        "                 WHEN Race = 'None' THEN 'unknown' \n",
+        "                 WHEN Race = ' ' THEN 'unknown' \n",
+        "                 WHEN Race = 'other' THEN 'unknown' \n",
+        "                 WHEN Race IS NULL THEN 'unknown' \n",
+        "                 ELSE Race \n",
+        "             END AS Ethnicity,\n",
+        "\n",
+        "            CASE ---classifying Age\n",
+        "               WHEN Age = 0 THEN 'Infants' \n",
+        "               WHEN Age BETWEEN 1 AND 12 THEN 'Kids' \n",
+        "               WHEN Age BETWEEN 13 AND 19 THEN 'Teanagers' \n",
+        "               WHEN Age BETWEEN 18 AND 35 THEN 'Youths' \n",
+        "               WHEN Age BETWEEN 36 AND 50 THEN 'Adults' \n",
+        "               WHEN Age > 50 AND Age<=60 THEN 'Elder' \n",
+        "               WHEN Age > 60 THEN 'Pensioner' \n",
+        "            END AS Age_group,\n",
+        "\n",
+        "          CASE --classifying province\n",
+        "                WHEN Province = 'None' THEN 'Unclassified' \n",
+        "                WHEN Province = ' ' THEN 'Unclassified' \n",
+        "                WHEN Province = 'other' THEN 'Unclassified' \n",
+        "                WHEN Province IS NULL THEN 'Unclassified' \n",
+        "                ELSE Province \n",
+        "             END AS Regions,\n",
+        "\n",
+        "          CASE --classifying email\n",
+        "                WHEN 'Email' IS NOT NULL THEN 1 \n",
+        "                WHEN 'Email'<> ' ' THEN 1 \n",
+        "                ELSE 0 \n",
+        "           END AS Email_flag, \n",
+        "\n",
+        "        CASE --classifying social media handle\n",
+        "            WHEN 'Social Media Handle' IS NOT NULL THEN 1 \n",
+        "            ELSE 0 \n",
+        "        END AS Social_media_handle_flag\n",
+        "     \n",
+        "    FROM brighttv.data.user_profiles),\n",
+        "\n",
+        "Base_viewership AS\n",
+        "              (SELECT\n",
+        "              COALESCE (UserID0, userid4) AS User_id,-- combining two user ids into one\n",
+        "              From_UTC_Timestamp(RecordDate2, 'Africa/Johannesburg') AS RecordDate_SAST,--converting timestamp to SA time \n",
+        "\t          Channel2,\n",
+        "             `Duration 2`\n",
+        "FROM brighttv.data.viewership \n",
+        "),\n",
+        "Cleaned_viewership AS\n",
+        "( SELECT\n",
+        "              User_id,\n",
+        "              RecordDate_SAST,\n",
+        "              TO_DATE(RecordDate_SAST) AS watch_date, -- Convert a string into a date YYYY-MM=-DD \n",
+        "              DAYNAME(TO_DATE(RecordDate_SAST))AS day_name, -- Extract the day name \n",
+        "              MONTHNAME(TO_DATE(RecordDate_SAST)) AS month_name, -- Extracts the month name \n",
+        "               YEAR(TO_DATE(RecordDate_SAST)) AS event_year, -- Extracts the year value \n",
+        "               DAY(TO_DATE(RecordDate_SAST)) AS event_day, -- Extracts the day value \n",
+        "               HOUR(RecordDate_SAST) AS Hour_of_day,--extracts hour of day\n",
+        "        CASE \n",
+        "               WHEN DAYNAME(TO_DATE(RecordDate_SAST)) IN ('Sat', 'Sun') THEN '02. Weekend' \n",
+        "               ELSE '01. Weekday' \n",
+        "        END AS day_classification,\n",
+        "\n",
+        "        date_format(RecordDate_SAST, 'HH:mm:ss') AS Watch_time,--converting date format to time\n",
+        "    CASE\n",
+        "        WHEN watch_time BETWEEN '00:00:00' AND '05:59:59' THEN '01. Midnight'\n",
+        "        WHEN watch_time BETWEEN '06:00:00' AND '11:59:59' THEN '02. Morning'\n",
+        "        WHEN watch_time BETWEEN '12:00:00' AND '16:59:59' THEN '03. Afternoon'\n",
+        "        WHEN watch_time BETWEEN '17:00:00' AND '23:59:59' THEN '04. Evening'\n",
+        "    END AS Time_of_day,\n",
+        "\n",
+        "    \n",
+        "     `Duration 2`,\n",
+        "        DATE_FORMAT(`Duration 2`, 'HH:mm:ss') AS Duration,--converting duration into time format\n",
+        "(\n",
+        "    HOUR(TO_TIMESTAMP(`Duration 2`, 'HH:mm:ss')) +\n",
+        "    MINUTE(TO_TIMESTAMP(`Duration 2`, 'HH:mm:ss')) / 60.0 + --converting minutes to seconds\n",
+        "    SECOND(TO_TIMESTAMP(`Duration 2`, 'HH:mm:ss')) / 3600.0--converting seconds to minutes\n",
+        ") AS Duration_hours, \n",
+        "\n",
+        "        (\n",
+        "            HOUR(TO_TIMESTAMP(`Duration 2`, 'HH:mm:ss')) * 3600 + --converting hours to seconds\n",
+        "            MINUTE(TO_TIMESTAMP(`Duration 2`, 'HH:mm:ss')) * 60 + ---converting minutes to seconds\n",
+        "            SECOND(TO_TIMESTAMP(`Duration 2`, 'HH:mm:ss'))\n",
+        "        ) AS Duration_seconds,    \n",
+        "\n",
+        "    CASE\n",
+        "        WHEN Duration_seconds BETWEEN 300 AND 1800 THEN '01. Low Usage (<30 min)'\n",
+        "        WHEN Duration_seconds BETWEEN 1801 AND 3599 THEN '02. Medium Usage (<60 min)'\n",
+        "        WHEN Duration_seconds >= 3600 THEN '03. High Usage (>60 min)'\n",
+        "        ELSE '04. No Usage'\n",
+        "    END AS Screen_time_bucket, \n",
+        "\n",
+        "      CASE --cleaning channel\n",
+        "        WHEN Channel2 IN ('SawSee','Sawsee') THEN 'SawSee'\n",
+        "        WHEN Channel2 IN ('SuperSport Live Events','Live on SuperSport', 'Supersport Live Events', 'DStv Events 1') THEN 'Live Events'\n",
+        "        ELSE Channel2\n",
+        "    END AS Tv_channel\n",
+        "FROM Base_viewership)\n",
+        "\n",
+        "----Creating the final table\n",
+        "SELECT \n",
+        "      COALESCE (A. User_id, B. UserID) AS Sub_ID,\n",
+        "          Sex,\n",
+        "          Ethnicity,\n",
+        "          Age_group,\n",
+        "          Regions,\n",
+        "          Email_flag,\n",
+        "          Social_media_handle_flag,\n",
+        "          RecordDate_SAST,\n",
+        "          Watch_date,\n",
+        "          Day_name,\n",
+        "          Month_name,\n",
+        "          Event_year,\n",
+        "          Event_day,\n",
+        "          Hour_of_day,\n",
+        "          Day_classification,\n",
+        "          Watch_time,\n",
+        "          Time_of_day,\n",
+        "          Duration,\n",
+        "          Duration_hours,\n",
+        "          Duration_seconds,\n",
+        "          Screen_time_bucket, \n",
+        "          Tv_channel\n",
+        "FROM Cleaned_viewership AS A\n",
+        "LEFT JOIN user_profiles AS B\n",
+        "ON A.User_id=B.UserID;\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n",
+        "\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "912f5b55",
+      "displayName": "BRIGHT TV DASHBOARD",
+      "layout": [
+        {
+          "widget": {
+            "name": "v",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "min(Duration_hours)",
+                      "expression": "MIN(`Duration_hours`)"
+                    },
+                    {
+                      "name": "max(Duration_hours)",
+                      "expression": "MAX(`Duration_hours`)"
+                    },
+                    {
+                      "name": "Age_group",
+                      "expression": "`Age_group`"
+                    },
+                    {
+                      "name": "sum(Duration_hours)",
+                      "expression": "SUM(`Duration_hours`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`Age_group` IN (`Age_group`) OR TRUE"
+                    }
+                  ],
+                  "cubeGroupingSets": {
+                    "sets": [
+                      {
+                        "fieldNames": [
+                          "Age_group"
+                        ]
+                      },
+                      {}
+                    ]
+                  },
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "`Age_group`"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "mark": {
+                "colors": [
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 1
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 2
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 3
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 4
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 5
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 6
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 7
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 8
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 9
+                  },
+                  {
+                    "themeColorType": "visualizationColors",
+                    "position": 10
+                  }
+                ]
+              },
+              "style": {
+                "fontColor": {
+                  "dark": "#1C4164"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "showDescription": false,
+                "description": "Viewership by Age Group",
+                "headerAlignment": "center",
+                "title": "Viewership By Age Group"
+              },
+              "widgetType": "gantt",
+              "encodings": {
+                "rows": [
+                  {
+                    "fieldName": "Age_group",
+                    "scale": {
+                      "type": "categorical",
+                      "sort": {
+                        "by": "range-reversed",
+                        "field": "start"
+                      }
+                    }
+                  }
+                ],
+                "range": {
+                  "scale": {
+                    "type": "quantitative",
+                    "reverse": false
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "start": {
+                    "fieldName": "min(Duration_hours)"
+                  },
+                  "end": {
+                    "fieldName": "max(Duration_hours)"
+                  }
+                },
+                "values": [
+                  {
+                    "fieldName": "sum(Duration_hours)"
+                  }
+                ],
+                "label": {
+                  "show": true
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "58c5abf3",
+            "queries": [
+              {
+                "name": "dashboards/01f1969408e918918eee8edbaaed3323/datasets/d91125880e304a7b8e9e3cd4cb698142_Month_name",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "Month_name",
+                      "expression": "`Month_name`"
+                    },
+                    {
+                      "name": "Month_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true
+              },
+              "selection": {
+                "defaultSelection": {
+                  "operator": {
+                    "operator": "AND",
+                    "args": []
+                  }
+                }
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "Month_name",
+                    "queryName": "dashboards/01f1969408e918918eee8edbaaed3323/datasets/d91125880e304a7b8e9e3cd4cb698142_Month_name"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "f83cedcb",
+            "queries": [
+              {
+                "name": "dashboards/01f1969408e918918eee8edbaaed3323/datasets/d91125880e304a7b8e9e3cd4cb698142_Regions",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "Regions",
+                      "expression": "`Regions`"
+                    },
+                    {
+                      "name": "Regions_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    },
+                    {
+                      "name": "count(Regions)",
+                      "expression": "COUNT(`Regions`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true
+              },
+              "scale": {
+                "type": "categorical",
+                "sort": {
+                  "by": "measure-reversed",
+                  "measure": {
+                    "fieldName": "count(Regions)",
+                    "queryName": "dashboards/01f1969408e918918eee8edbaaed3323/datasets/d91125880e304a7b8e9e3cd4cb698142_Regions"
+                  }
+                }
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "Regions",
+                    "queryName": "dashboards/01f1969408e918918eee8edbaaed3323/datasets/d91125880e304a7b8e9e3cd4cb698142_Regions"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 1,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "faa74266",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "Time_of_day",
+                      "expression": "`Time_of_day`"
+                    },
+                    {
+                      "name": "sum(Duration_hours)",
+                      "expression": "SUM(`Duration_hours`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "showDescription": false,
+                "title": "Viewing Patterns by Time of Day",
+                "headerAlignment": "center"
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "Time_of_day",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(Duration_hours)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "v-1",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "Watch_date",
+                      "expression": "`Watch_date`"
+                    },
+                    {
+                      "name": "sum(Duration_hours)",
+                      "expression": "SUM(`Duration_hours`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Viewership Pattern by Watch Date",
+                "headerAlignment": "center"
+              },
+              "mark": {
+                "size": 0.1
+              },
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "Watch_date",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(Duration_hours)",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 12,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "a03d8354",
+            "imageSpec": {
+              "image": {
+                "source": {
+                  "url": "data:image/webp;base64,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"
+                }
+              },
+              "frame": {},
+              "style": {
+                "sizeMode": "SIZE_MODE_FIT",
+                "horizontalAlign": "HORIZONTAL_ALIGN_CENTER"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "2d27691b",
+            "multilineTextboxSpec": {
+              "lines": [
+                "<span style=\"text-align:center;display:block\"><span style=\"font-weight:700;font-size:36px;color:#497AA2;line-height:1.5\">BRIGHT TV VIEWERSHIP ANALYSIS </span></span>"
+              ],
+              "verticalAlign": "VERTICAL_ALIGN_TOP"
+            },
+            "specExtensions": {
+              "widgetBackgroundColor": {
+                "light": "#34312D"
+              },
+              "widgetBorderColor": {
+                "light": "#30404E"
+              }
+            }
+          },
+          "position": {
+            "x": 1,
+            "y": 0,
+            "width": 10,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "331a679a",
+            "queries": [
+              {
+                "name": "dashboards/01f1969408e918918eee8edbaaed3323/datasets/d91125880e304a7b8e9e3cd4cb698142_Ethnicity",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "Ethnicity",
+                      "expression": "`Ethnicity`"
+                    },
+                    {
+                      "name": "Ethnicity_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "showTitle": true
+              },
+              "scale": {
+                "type": "categorical"
+              },
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "Ethnicity",
+                    "queryName": "dashboards/01f1969408e918918eee8edbaaed3323/datasets/d91125880e304a7b8e9e3cd4cb698142_Ethnicity"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 1,
+            "width": 4,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "d27692",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "sum(Duration_hours)",
+                      "expression": "SUM(`Duration_hours`)"
+                    },
+                    {
+                      "name": "Sex",
+                      "expression": "`Sex`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Viewership By Gender",
+                "headerAlignment": "center"
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "sum(Duration_hours)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": " "
+                },
+                "color": {
+                  "fieldName": "Sex",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "female",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 3
+                        }
+                      },
+                      {
+                        "value": "male",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 4
+                        }
+                      },
+                      {
+                        "value": "unknown",
+                        "color": {
+                          "themeColorType": "visualizationColors",
+                          "position": 6
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "v-2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "Regions",
+                      "expression": "`Regions`"
+                    },
+                    {
+                      "name": "Hour_of_day",
+                      "expression": "`Hour_of_day`"
+                    },
+                    {
+                      "name": "Tv_channel",
+                      "expression": "`Tv_channel`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "headerAlignment": "center",
+                "title": "Viewed Channel by Region and Hour of Day"
+              },
+              "widgetType": "heatmap",
+              "encodings": {
+                "x": {
+                  "fieldName": "Hour_of_day",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "y": {
+                  "fieldName": "Tv_channel",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "color": {
+                  "fieldName": "Regions",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "s",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "27b73344",
+                  "fields": [
+                    {
+                      "name": "countdistinct(Sub_ID)",
+                      "expression": "COUNT(DISTINCT `Sub_ID`)"
+                    },
+                    {
+                      "name": "Ethnicity",
+                      "expression": "`Ethnicity`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`Ethnicity` IN (`Ethnicity`) OR TRUE"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "showTitle": true,
+                "title": "Subscribers By Ethnicity",
+                "headerAlignment": "center",
+                "showDescription": false
+              },
+              "widgetType": "funnel",
+              "encodings": {
+                "x": {
+                  "fieldName": "countdistinct(Sub_ID)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "axis": {
+                    "title": "Distinct Subscribers"
+                  }
+                },
+                "y": {
+                  "fieldName": "Ethnicity",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "x-reversed"
+                    }
+                  }
+                },
+                "label": {
+                  "show": true
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 6,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "c56d1728",
+            "imageSpec": {
+              "image": {
+                "source": {
+                  "url": "data:image/webp;base64,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"
+                }
+              },
+              "frame": {},
+              "style": {
+                "sizeMode": "SIZE_MODE_FIT",
+                "horizontalAlign": "HORIZONTAL_ALIGN_CENTER"
+              }
+            }
+          },
+          "position": {
+            "x": 11,
+            "y": 0,
+            "width": 1,
+            "height": 1
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "692b7e6e",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#1A242C",
+        "dark": "#1A242C"
+      },
+      "widgetBackgroundColor": {
+        "light": "#12181D",
+        "dark": "#12181D"
+      },
+      "widgetBorderColor": {
+        "light": "#11171C",
+        "dark": "#11171C"
+      },
+      "fontColor": {
+        "light": "#E8ECF0",
+        "dark": "#E8ECF0"
+      },
+      "selectionColor": {
+        "light": "#9877C1",
+        "dark": "#9877C1"
+      },
+      "visualizationColors": [
+        "#0B4B60",
+        "#1A6892",
+        "#4D8CC0",
+        "#9580CE",
+        "#CC90C2",
+        "#EAB0D0",
+        "#F8DAE8"
+      ],
+      "widgetHeaderAlignment": "LEFT",
+      "fontFamily": "Space Grotesk",
+      "widgetPadding": 8,
+      "widgetMargin": 4,
+      "widgetCornerRadius": 0,
+      "widgetShadow": 0,
+      "continuousGradient": {
+        "lightMode": {
+          "fromCategoricalIndex": 0
+        },
+        "darkMode": {
+          "fromCategoricalIndex": 0
+        }
+      },
+      "fontSettings": {
+        "base": {
+          "fontFamily": "Space Grotesk",
+          "fontColor": {
+            "light": "#E8ECF0",
+            "dark": "#E8ECF0"
+          },
+          "fontSize": 14,
+          "fontWeight": 400
+        },
+        "widgetTitle": {
+          "fontSize": 16,
+          "fontWeight": 500
+        },
+        "widgetDescription": {
+          "fontSize": 14,
+          "fontWeight": 400
+        },
+        "fieldTitle": {
+          "textCase": "TEXT_CASE_UPPERCASE",
+          "fontColor": {
+            "light": "#D1D4D8",
+            "dark": "#D1D4D8"
+          },
+          "fontSize": 13,
+          "fontWeight": 400
+        },
+        "fieldValue": {
+          "fontColor": {
+            "light": "#D1D4D8",
+            "dark": "#D1D4D8"
+          },
+          "fontSize": 13,
+          "fontWeight": 400
+        }
+      },
+      "gridLineColor": {
+        "light": "#383E42",
+        "dark": "#383E42"
+      },
+      "axisLineColor": {
+        "light": "#69AFEB",
+        "dark": "#515960"
+      }
+    },
+    "applyModeEnabled": false
+  }
+}
