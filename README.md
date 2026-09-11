@@ -2,7 +2,8 @@
   <img 
     src="https://raw.githubusercontent.com/Prohzindove/BRIGHT-TV/main/BRIGHT%20TV%20README%20IMAGE.png"
     alt="BrightTV Data Analysis"
-    width="60%"
+    width="100%"
+    height="50"
   >
 </p>
 
