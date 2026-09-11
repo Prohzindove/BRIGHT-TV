@@ -1,7 +1,7 @@
 # BRIGHT-TV
 
 <p align="center">
-  <img src="https://github.com/Prohzindove/BRIGHT-TV/blob/main/BRIGHT%20TV%20README%20IMAGE.png" width="985">
+  <img src="https://github.com/Prohzindove/BRIGHT-TV/blob/main/BRIGHT%20TV%20README%20IMAGE.png">
 </p>
 
 # Links
