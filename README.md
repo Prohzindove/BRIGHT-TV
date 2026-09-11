@@ -7,8 +7,6 @@
   >
 </p>
 
-# BrightTV Viewership Data Analysis
-
 ## Project Overview
 
 The BrightTV Viewership Data Analysis project explores customer viewing behaviour and usage patterns to understand how subscribers interact with the BrightTV platform.
@@ -147,6 +145,6 @@ This project demonstrates practical skills in:
 
 [View the BrightTV Lovable Dashboard](https://tv-pulse-analytics.lovable.app/)
 
-# Conclusion
+## Conclusion
 This project forms part of my data analytics portfolio and demonstrates my ability to transform raw data into meaningful insights and communicate findings through interactive dashboards and data storytelling.
 
