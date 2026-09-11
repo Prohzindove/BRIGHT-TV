@@ -1,10 +1,8 @@
-# BRIGHT-TV
-
 <p align="center">
   <img 
     src="https://raw.githubusercontent.com/Prohzindove/BRIGHT-TV/main/BRIGHT%20TV%20README%20IMAGE.png"
     alt="BrightTV Data Analysis"
-    width="100%"
+    width="60%"
   >
 </p>
 
