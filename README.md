@@ -54,6 +54,7 @@ Several additional variables were derived from the original data to support deep
 * Time buckets
 * Watch hour
 * Usage buckets
+* Duration hours
 
 These transformations made it possible to analyse viewing behaviour across different time periods and customer usage levels.
 
