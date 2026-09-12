@@ -146,6 +146,13 @@ This project demonstrates practical skills in:
 
 [View the BrightTV Lovable Dashboard](https://tv-pulse-analytics.lovable.app/)
 
+### PowerBI Dashboard
+
+https://acrobat.adobe.com/id/urn:aaid:sc:EU:8e7dcb93-1b1e-44d6-a398-e82f93ab5d51 
+
+### Data Studio Dashboard
+
+https://datastudio.google.com/s/mrFM24XF7SQ
 ## Conclusion
 This project forms part of my data analytics portfolio and demonstrates my ability to transform raw data into meaningful insights and communicate findings through interactive dashboards and data storytelling.
 
