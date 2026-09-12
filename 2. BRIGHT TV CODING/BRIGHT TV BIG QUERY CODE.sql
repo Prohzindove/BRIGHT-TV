@@ -19,11 +19,11 @@ With user_profiles AS
             CASE ---classifying Age
                WHEN Age = 0 THEN 'infant' 
                WHEN Age BETWEEN 1 AND 12 THEN 'Kids' 
-               WHEN Age BETWEEN 13 AND 17 THEN 'youth' 
-               WHEN Age BETWEEN 18 AND 35 THEN 'youth Adults' 
+               WHEN Age BETWEEN 13 AND 17 THEN 'Teenagers' 
+               WHEN Age BETWEEN 18 AND 35 THEN 'Youths' 
                WHEN Age BETWEEN 36 AND 50 THEN 'Adults' 
-               WHEN Age > 50 AND Age<=60 THEN 'Elder' 
-               WHEN Age > 60 THEN 'Pensioner' 
+               WHEN Age > 50 AND Age<=60 THEN 'Elders' 
+               WHEN Age > 60 THEN 'Pensioners' 
             END AS Age_group,
 
           CASE --classifying province
